@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Canvas Audio Waveform</title>
+    <style>
+        canvas { display: block; margin: auto; }
+    </style>
+</head>
+<body>
+    <audio id="audio" src="your-audio-file.mp3" controls></audio>
+    <canvas id="waveform"></canvas>
+
+    <script>
+        const audioElement = document.getElementById('audio');
+        const canvas = document.getElementById('waveform');
+        const ctx = canvas.getContext('2d');
+
+        // 初始化Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaElementSource(audioElement);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+
+        // 设置canvas尺寸与音频数据长度对应
+        canvas.width = window.innerWidth;
+        canvas.height = 200;
+
+        function draw() {
+            requestAnimationFrame(draw);
+
+            // 获取音频波形数据
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteTimeDomainData(dataArray);
+
+            // 计算合适的缩放比例
+            const width = canvas.width;
+            const height = canvas.height;
+            const sliceWidth = width / dataArray.length;
+            let x = 0;
+
+            // 清除画布
+            ctx.clearRect(0, 0, width, height);
+
+            // 绘制波形
+            ctx.beginPath();
+            for(let i = 0; i < dataArray.length; i++) {
+                const v = dataArray[i] / 128.0; // 范围归一化到-1.0 ~ 1.0之间
+                const y = v * height / 2 + height / 2;
+
+                if(i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            ctx.stroke(); // 描绘路径
+        }
+
+        // 等待音频加载完成后再开始绘制
+        audioElement.addEventListener('canplaythrough', () => {
+            draw();
+        });
+    </script>
+</body>
+</html>
