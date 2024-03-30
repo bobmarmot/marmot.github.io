@@ -2,70 +2,80 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Canvas Audio Waveform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLB Model Renderer</title>
     <style>
-        canvas { display: block; margin: auto; }
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <!-- 如果模型包含Draco压缩或KHR_draco_mesh_compression，需要额外的解码器 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- 若需要动画控制，还需要AnimationMixer -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-    <audio id="audio" src="https://bobmarmot.github.io/marmotd/your-audio-file.mp3" controls></audio>
-    <canvas id="waveform"></canvas>
+    <div id="3d-container"></div>
 
     <script>
-        const audioElement = document.getElementById('audio');
-        const canvas = document.getElementById('waveform');
-        const ctx = canvas.getContext('2d');
+        async function loadGLBModel() {
+            const container = document.getElementById('3d-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer();
 
-        // 初始化Web Audio API
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioCtx.createMediaElementSource(audioElement);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 2048;
-        source.connect(analyser);
-        analyser.connect(audioCtx.destination);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
 
-        // 设置canvas尺寸与音频数据长度对应
-        canvas.width = window.innerWidth;
-        canvas.height = 200;
+            // 添加光照
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(1, 1, 1).normalize();
+            scene.add(directionalLight);
 
-        function draw() {
-            requestAnimationFrame(draw);
+            // 加载GLTFLoader
+            const loader = new THREE.GLTFLoader();
+            loader.load('BusStation.glb', (gltf) => {
+                const model = gltf.scene;
+                scene.add(model);
 
-            // 获取音频波形数据
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteTimeDomainData(dataArray);
+                // 设置相机位置和看向模型中心
+                camera.position.z = 5;
 
-            // 计算合适的缩放比例
-            const width = canvas.width;
-            const height = canvas.height;
-            const sliceWidth = width / dataArray.length;
-            let x = 0;
-
-            // 清除画布
-            ctx.clearRect(0, 0, width, height);
-
-            // 绘制波形
-            ctx.beginPath();
-            for(let i = 0; i < dataArray.length; i++) {
-                const v = dataArray[i] / 128.0; // 范围归一化到-1.0 ~ 1.0之间
-                const y = v * height / 2 + height / 2;
-
-                if(i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
+                // 如果模型包含动画，设置动画混合器
+                if (gltf.animations && gltf.animations.length > 0) {
+                    const mixer = new THREE.AnimationMixer(model);
+                    mixer.clipAction(gltf.animations[0]).play();
+                    animate();
                 }
 
-                x += sliceWidth;
-            }
+                // 添加轨道控制器
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-            ctx.stroke(); // 描绘路径
+                // 渲染循环
+                function animate() {
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    if (mixer) mixer.update(0.016); // 更新动画
+                    renderer.render(scene, camera);
+                }
+                animate();
+            }, undefined, (error) => {
+                console.error('An error happened while loading the glb file:', error);
+            });
+
+            // 调整大小响应窗口变化
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
         }
 
-        // 等待音频加载完成后再开始绘制
-        audioElement.addEventListener('canplaythrough', () => {
-            draw();
-        });
+        window.onload = () => {
+            loadGLBModel();
+        };
     </script>
 </body>
 </html>
