@@ -9,16 +9,14 @@
         canvas { display: block; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-    <!-- 如果模型包含Draco压缩或KHR_draco_mesh_compression，需要额外的解码器 -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
-    <!-- 若需要动画控制，还需要AnimationMixer -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
     <div id="3d-container"></div>
 
     <script>
-        async function loadGLBModel() {
+        async function loadGLBModelWithoutAnimations() {
             const container = document.getElementById('3d-container');
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -43,13 +41,6 @@
                 // 设置相机位置和看向模型中心
                 camera.position.z = 5;
 
-                // 如果模型包含动画，设置动画混合器
-                if (gltf.animations && gltf.animations.length > 0) {
-                    const mixer = new THREE.AnimationMixer(model);
-                    mixer.clipAction(gltf.animations[0]).play();
-                    animate();
-                }
-
                 // 添加轨道控制器
                 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
@@ -57,7 +48,6 @@
                 function animate() {
                     requestAnimationFrame(animate);
                     controls.update();
-                    if (mixer) mixer.update(0.016); // 更新动画
                     renderer.render(scene, camera);
                 }
                 animate();
@@ -74,7 +64,7 @@
         }
 
         window.onload = () => {
-            loadGLBModel();
+            loadGLBModelWithoutAnimations();
         };
     </script>
 </body>
