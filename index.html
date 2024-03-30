@@ -1,22 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLB Model Renderer</title>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <!-- ...（保持之前的样式和脚本引用不变）... -->
 </head>
 <body>
     <div id="3d-container"></div>
 
     <script>
-        async function loadGLBModelWithoutAnimations() {
+        async function loadMultipleGLBModels() {
             const container = document.getElementById('3d-container');
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -32,28 +23,47 @@
             directionalLight.position.set(1, 1, 1).normalize();
             scene.add(directionalLight);
 
-            // 加载GLTFLoader
+            // 加载并添加第一个模型
             const loader = new THREE.GLTFLoader();
-            loader.load('BusStation.glb', (gltf) => {
-                const model = gltf.scene;
-                scene.add(model);
-
-                // 设置相机位置和看向模型中心
-                camera.position.z = 5;
-
-                // 添加轨道控制器
-                const controls = new THREE.OrbitControls(camera, renderer.domElement);
-
-                // 渲染循环
-                function animate() {
-                    requestAnimationFrame(animate);
-                    controls.update();
-                    renderer.render(scene, camera);
-                }
-                animate();
+            loader.load('BusStation.glb', (gltf1) => {
+                const model1 = gltf1.scene;
+                scene.add(model1);
+                positionFirstModel(model1);
             }, undefined, (error) => {
-                console.error('An error happened while loading the glb file:', error);
+                console.error('Error loading model1:', error);
             });
+
+            // 加载并添加第二个模型
+            loader.load('HoleCover.glb', (gltf2) => {
+                const model2 = gltf2.scene;
+                scene.add(model2);
+                positionSecondModel(model2);
+            }, undefined, (error) => {
+                console.error('Error loading model2:', error);
+            });
+
+            // 定义模型位置函数
+            function positionFirstModel(model) {
+                model.position.set(-2, 0, 0); // 示例位置
+            }
+
+            function positionSecondModel(model) {
+                model.position.set(2, 0, 0); // 示例位置
+            }
+
+            // 设置相机位置和看向场景中心
+            camera.position.z = 5;
+
+            // 添加轨道控制器
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+            // 渲染循环
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
 
             // 调整大小响应窗口变化
             window.addEventListener('resize', () => {
@@ -64,7 +74,7 @@
         }
 
         window.onload = () => {
-            loadGLBModelWithoutAnimations();
+            loadMultipleGLBModels();
         };
     </script>
 </body>
